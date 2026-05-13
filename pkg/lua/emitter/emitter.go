@@ -293,6 +293,39 @@ func (e *Emitter) emitExpr(expr ast.Expr) error {
 		}
 		return nil
 
+	case *ast.Function:
+		if _, err := e.w.Write([]byte("function(")); err != nil {
+			return err
+		}
+		clen := len(n.Params)
+		for i, param := range n.Params {
+			if _, err := e.w.Write([]byte(param)); err != nil {
+				return err
+			}
+			if i < clen-1 {
+				if _, err := e.w.Write([]byte(", ")); err != nil {
+					return err
+				}
+			}
+		}
+		if _, err := e.w.Write([]byte(")\n")); err != nil {
+			return err
+		}
+		e.indent++
+		for _, stmt := range n.Body {
+			if err := e.emitStmt(stmt); err != nil {
+				return err
+			}
+			if _, err := e.w.Write([]byte("\n")); err != nil {
+				return err
+			}
+		}
+		e.indent--
+		if _, err := e.w.Write([]byte("end")); err != nil {
+			return err
+		}
+		return nil
+
 	default:
 		if n == nil { // skip nil
 			return nil
