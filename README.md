@@ -3,7 +3,15 @@
 An attempt of a conversion tool for migrating from `hyprlang`-based configs to the new `lua` syntax.
 
 >[!WARNING]
->Not everything is implemented, for example `col.*` in the `general` config is emitted wrong, and `animations` are not even implemented and much more. Feel free to open PRs if you want to add support!
+>Not everything is implemented, for example 
+> - `col.*` in the `general` config is emitted wrong
+> - `animations` are not even implemented
+> - strings get spaces removed which will break commands (if you use this, check your execs)
+> - bind keys are missing " + " between them
+> - some types are wrong, for example some bools get emitted as str
+> 
+>and much more.
+>Feel free to open PRs if you want to add support!
 
 >[!IMPORTANT]
 >Since it is in a half-implemented state, you can use this tool like a starter for migrating to lua, and then do some manual fixes where the tool screws up.
