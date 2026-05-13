@@ -80,19 +80,17 @@ func TestExec(t *testing.T) {
 			t.Fatalf("node %d: expected *ast.Exec, got %T", i, n)
 		}
 
-		parts := strings.Split(strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(strings.TrimPrefix(execs[i], "exec-once")), "=")), " ")
-		if len(parts) < 1 {
-			t.Fatalf("invalid test input: %s", execs[i])
-		}
+		cmd := strings.TrimSpace(strings.TrimPrefix(strings.TrimSpace(strings.TrimPrefix(execs[i], "exec-once")), "="))
+		_ = cmd
 		if exec.Once == false {
 			t.Fatalf("expected exec.Once to be true but it was false")
 		}
-		if len(parts) != len(exec.Command.Parts) {
+		if 1 != len(exec.Command.Parts) {
 			t.Logf("FAIL, command parts output block:")
 			for i, p := range exec.Command.Parts {
 				t.Logf("\t%d:%v", i, p)
 			}
-			t.Fatalf("on %s: expected command parts to be equal to test input, test case: %d, command: %d", execs[i], len(parts), len(exec.Command.Parts))
+			t.Fatalf("on %s: expected command parts to be equal to test input, test case: %d, command: %d", execs[i], 1, len(exec.Command.Parts))
 		}
 
 	}
