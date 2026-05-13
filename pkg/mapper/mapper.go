@@ -3,6 +3,7 @@ package mapper
 import (
 	"fmt"
 	"log"
+	"strings"
 
 	hyprast "github.com/phillezi/hypr2lua/pkg/hypr/ast"
 	luaast "github.com/phillezi/hypr2lua/pkg/lua/ast"
@@ -97,9 +98,17 @@ func (m *Mapper) MapNode(n hyprast.Node, ctx *MapperContext) (any, error) {
 }
 
 func (m *Mapper) mapDirective(d *hyprast.Directive, ctx *MapperContext) (any, error) {
-	args := directiveArgs(d.Args)
-	_ = args
 	switch d.Name {
+	case "workspace":
+		wArgs := workspaceArgs(d.Args)
+		return &luaast.Call{
+			Callee: luaast.MemberChain("hl.workspace_rule"),
+			Args: []luaast.Expr{
+				&luaast.Table{
+					Fields: wArgs,
+				},
+			},
+		}, nil
 	default:
 		log.Printf("Unimplemented mapping %q", d.Name)
 		return &luaast.Nil{}, nil
@@ -138,4 +147,39 @@ func directiveArgs(args []hyprast.Expr) []luaast.Expr {
 	}
 
 	return out
+}
+
+func workspaceArgs(args []hyprast.Expr) []luaast.Field {
+	fields := make([]luaast.Field, 0, len(args))
+
+	for i, a := range args {
+		switch i {
+		case 0:
+			fields = append(fields, luaast.Field{
+				Key:   luaast.MemberChain("workspace"),
+				Value: stringify(a),
+			})
+		default:
+			switch v := a.(type) {
+			case *hyprast.String:
+				parts := strings.Split(v.Value, ":")
+				if len(parts) > 1 {
+					if len(parts) == 2 {
+						var value luaast.Expr = luaast.Auto(parts[1])
+						fields = append(fields, luaast.Field{
+							Key:   luaast.MemberChain(parts[0]),
+							Value: value,
+						})
+					} else {
+						panic(fmt.Errorf("unexpected workspace rule arg len, expected len to be 2, got %d", len(parts)))
+					}
+				} else {
+					panic(fmt.Errorf("unsupported workspace rule arg, %q", v.Value))
+				}
+			default:
+				panic(fmt.Errorf("unsupported workspace arg type %T", v))
+			}
+		}
+	}
+	return fields
 }
