@@ -2,24 +2,12 @@ package mapper
 
 import (
 	"fmt"
-	"log"
 
 	hyprast "github.com/phillezi/hypr2lua/pkg/hypr/ast"
 	luaast "github.com/phillezi/hypr2lua/pkg/lua/ast"
 )
 
 func (m *Mapper) mapBind(v *hyprast.Bind, ctx *MapperContext) (any, error) {
-	log.Println("BIND DEBUG___________________")
-	log.Println("Mods:\t", all(all(v.Mods, stringify), func(in *luaast.String) string {
-		return in.Value
-	}))
-	log.Println("Key:\t", stringify(v.Key).Value)
-	log.Println("Dispatcher:\t", stringify(v.Dispatcher).Value)
-	log.Println("Args:\t", all(all(v.Args, stringify), func(in *luaast.String) string {
-		return in.Value
-	}))
-	log.Println("Kind:\t", v.Kind)
-
 	mods := make([]luaast.Expr, len(v.Mods))
 	for i, m0 := range v.Mods {
 		mods[i] = convertExpr(m0)
@@ -122,9 +110,30 @@ func (m *Mapper) mapBind(v *hyprast.Bind, ctx *MapperContext) (any, error) {
 		})
 
 	case "movewindow":
+		args = append(args, &luaast.Call{
+			Callee: luaast.MemberChain("hl.dsp.window.drag"),
+		})
+		if v.Kind == "bindm" {
+			args = append(args, &luaast.Table{Fields: []luaast.Field{
+				{
+					Key:   luaast.MemberChain("mouse"),
+					Value: luaast.Bool(true),
+				},
+			}})
+		}
 
 	case "resizewindow":
-
+		args = append(args, &luaast.Call{
+			Callee: luaast.MemberChain("hl.dsp.window.resize"),
+		})
+		if v.Kind == "bindm" {
+			args = append(args, &luaast.Table{Fields: []luaast.Field{
+				{
+					Key:   luaast.MemberChain("mouse"),
+					Value: luaast.Bool(true),
+				},
+			}})
+		}
 	}
 
 	return luaast.ExprStmt{
