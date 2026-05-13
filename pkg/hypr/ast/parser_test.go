@@ -197,14 +197,13 @@ func TestLayerRule(t *testing.T) {
 	}
 }
 
-// FIXME: make sure it passes for the other var types too
 func TestVariable(t *testing.T) {
 	vars := []string{
 		"$myvar = test123",
-		//"$mystr = hello world",
-		//"$myint = 67",
-		//"$mybool = true",
-		//"$myfloat = 6.7",
+		"$mystr = hello_world",
+		"$myint = 67",
+		"$mybool = true",
+		"$myfloat = 6.7",
 	}
 
 	r := bytes.NewReader([]byte(strings.Join(vars, "\n")))

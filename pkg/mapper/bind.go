@@ -86,27 +86,14 @@ func (m *Mapper) mapBind(v *hyprast.Bind, ctx *MapperContext) (any, error) {
 			Args:   eArgs,
 		})
 	case "layoutmsg":
-		fields := make([]luaast.Field, 0, len(v.Args))
-		for _, a := range v.Args {
-			switch vv := a.(type) {
-			case *hyprast.String:
-				switch vv.Value {
-				case "swapwithmaster":
-					fields = append(fields, luaast.Field{
-						Key:   luaast.MemberChain("master"),
-						Value: luaast.Bool(true),
-					})
-				default:
-					return nil, fmt.Errorf("unimplemented layoutmsg %q", vv.Value)
-				}
-			}
+		if len(v.Args) != 1 {
+			return nil, fmt.Errorf("layoutmsg requires exactly one argument, got %d", len(v.Args))
 		}
-
 		args = append(args, &luaast.Call{
-			Callee: luaast.MemberChain("hl.dsp.window.swap"),
-			Args: []luaast.Expr{&luaast.Table{
-				Fields: fields,
-			}},
+			Callee: luaast.MemberChain("hl.dsp.layout"),
+			Args: []luaast.Expr{
+				stringify(v.Args[0]),
+			},
 		})
 
 	case "movewindow":

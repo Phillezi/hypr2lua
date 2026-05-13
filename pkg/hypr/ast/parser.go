@@ -355,6 +355,54 @@ func (p *Parser) parseExpr() (Expr, error) {
 	switch p.cur.Type {
 
 	case STRING:
+		v := &String{Value: p.cur.Value}
+		p.next()
+		return v, nil
+
+	case INTEGER:
+		n, err := strconv.ParseInt(p.cur.Value, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		p.next()
+		return &Integer{Value: n}, nil
+
+	case FLOAT:
+		n, err := strconv.ParseFloat(p.cur.Value, 64)
+		if err != nil {
+			return nil, err
+		}
+
+		p.next()
+		return &Float{Value: n}, nil
+
+	case BOOLEAN:
+		v := &Boolean{Value: p.cur.Value == "true"}
+		p.next()
+		return v, nil
+
+	case VARIABLE:
+		v := &VariableRef{Name: p.cur.Value}
+		p.next()
+		return v, nil
+
+	case IDENT:
+		v := &String{Value: p.cur.Value}
+		p.next()
+		return v, nil
+
+	case LBRACKET:
+		return p.parseArray()
+	}
+
+	return nil, p.error("unexpected token in expression")
+}
+
+/*func (p *Parser) parseExpr() (Expr, error) {
+	switch p.cur.Type {
+
+	case STRING:
 		return &String{Value: p.cur.Value}, nil
 
 	case INTEGER:
@@ -385,7 +433,7 @@ func (p *Parser) parseExpr() (Expr, error) {
 	}
 
 	return nil, p.error("unexpected token in expression")
-}
+}*/
 
 func (p *Parser) parseArray() (Expr, error) {
 	arr := &Array{}
