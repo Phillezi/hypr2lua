@@ -5,6 +5,9 @@ An attempt of a conversion tool for migrating from `hyprlang`-based configs to t
 >[!WARNING]
 >Not everything is implemented, for example `col.*` in the `general` config is emitted wrong, and `animations` are not even implemented and much more. Feel free to open PRs if you want to add support!
 
+>[!IMPORTANT]
+>Since it is in a half-implemented state, you can use this tool like a starter for migrating to lua, and then do some manual fixes where the tool screws up.
+
 ## Quickstart
 
 ### Installing
