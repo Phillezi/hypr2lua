@@ -15,7 +15,7 @@ An attempt of a conversion tool for migrating from `hyprlang`-based configs to t
 #### Using `go`
 
 >[!NOTE]
->Make sure you have the go tools dir added to your `PATH` env, to be able to use it (add this to your `~/.bashrc`)
+>Make sure you have the go tools dir added to your `PATH` env, to be able to use it (add this to your `~/.bashrc` and source it after)
 >```bash
 >export GOBIN=$(go env GOPATH)/bin
 >export PATH=$GOBIN:$PATH
