@@ -31,16 +31,6 @@ type Directive struct {
 
 func (*Directive) node() {}
 
-type Bind struct {
-	Kind       string
-	Mods       []Expr
-	Key        Expr
-	Dispatcher Expr
-	Args       []Expr
-}
-
-func (*Bind) node() {}
-
 type Variable struct {
 	Name  string
 	Value Expr

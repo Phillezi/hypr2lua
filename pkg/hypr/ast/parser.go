@@ -211,83 +211,17 @@ func (p *Parser) parseAssignmentOrDirective(name string) (Node, error) {
 	}
 
 	if name == "windowrule" {
-		var rules []MatchExpr
-		var action Expr
-		for i := 0; i < len(args); i++ {
-			arg := args[i]
-			switch v := arg.(type) {
-			case *String:
-				if m, ok := strings.CutPrefix(v.Value, "match:"); ok {
-					if i+1 >= len(args) {
-						return nil, fmt.Errorf("expected value after matcher rule")
-					}
-					rules = append(rules, MatchExpr{
-						Field: m,
-						Value: args[i+1],
-					})
-					i++
-				} else {
-					if action != nil {
-						if v, ok := action.(*Concat); ok {
-							v.Parts = append(v.Parts, arg)
-						} else {
-							// return nil, fmt.Errorf("multiple actions for rule is not supported, found %v and %v", action, arg)
-							tmp := Concat{
-								Parts: []Expr{
-									action,
-									arg,
-								},
-							}
-							action = &tmp
-						}
-					} else {
-						action = arg
-					}
-				}
-			default:
-				return nil, fmt.Errorf("unsupported matcher: %T", v)
-			}
+		rules, action, err := parseMatcher(args)
+		if err != nil {
+			return nil, err
 		}
 		return &WindowRule{Action: action, Matches: rules}, nil
 	}
 
 	if name == "layerrule" {
-		var rules []MatchExpr
-		var action Expr
-		for i := 0; i < len(args); i++ {
-			arg := args[i]
-			switch v := arg.(type) {
-			case *String:
-				if m, ok := strings.CutPrefix(v.Value, "match:"); ok {
-					if i+1 >= len(args) {
-						return nil, fmt.Errorf("expected value after matcher rule")
-					}
-					rules = append(rules, MatchExpr{
-						Field: m,
-						Value: args[i+1],
-					})
-					i++
-				} else {
-					if action != nil {
-						if v, ok := action.(*Concat); ok {
-							v.Parts = append(v.Parts, arg)
-						} else {
-							// return nil, fmt.Errorf("multiple actions for rule is not supported, found %v and %v", action, arg)
-							tmp := Concat{
-								Parts: []Expr{
-									action,
-									arg,
-								},
-							}
-							action = &tmp
-						}
-					} else {
-						action = arg
-					}
-				}
-			default:
-				return nil, fmt.Errorf("unsupported matcher: %T", v)
-			}
+		rules, action, err := parseMatcher(args)
+		if err != nil {
+			return nil, err
 		}
 		return &LayerRule{Action: action, Matches: rules}, nil
 	}
@@ -342,7 +276,9 @@ func (p *Parser) parseCSV() ([]Expr, error) {
 		if len(parts) == 1 {
 			values = append(values, parts[0])
 		} else {
-			values = append(values, parts...)
+			values = append(values, &Concat{
+				Parts: parts,
+			})
 		}
 
 		parts = nil
@@ -556,5 +492,65 @@ func splitMods(expr Expr) []Expr {
 
 	walk(expr)
 
+	return out
+}
+
+func parseMatcher(args []Expr) (rules []MatchExpr, action Expr, err error) {
+	args = flattenExpr(args)
+	for i := 0; i < len(args); i++ {
+		arg := args[i]
+		switch v := arg.(type) {
+		case *String:
+			if m, ok := strings.CutPrefix(v.Value, "match:"); ok {
+				if i+1 >= len(args) {
+					return nil, nil, fmt.Errorf("expected value after matcher rule")
+				}
+				rules = append(rules, MatchExpr{
+					Field: m,
+					Value: args[i+1],
+				})
+				i++
+			} else {
+				if action != nil {
+					if v, ok := action.(*Concat); ok {
+						v.Parts = append(v.Parts, arg)
+					} else {
+						// return nil, fmt.Errorf("multiple actions for rule is not supported, found %v and %v", action, arg)
+						tmp := Concat{
+							Parts: []Expr{
+								action,
+								arg,
+							},
+						}
+						action = &tmp
+					}
+				} else {
+					action = arg
+				}
+			}
+		default:
+			return nil, nil, fmt.Errorf("unsupported matcher: %T", v)
+		}
+	}
+	return rules, action, nil
+}
+
+// flattenExpr takes in a slice of expressions and expands all concats to their types (flattened)
+func flattenExpr(args []Expr) []Expr {
+	out := make([]Expr, 0, len(args)*2)
+	for _, arg := range args {
+		switch v := arg.(type) {
+		case *Concat:
+			for _, p := range v.Parts {
+				out = append(out, p)
+			}
+		case *Array:
+			for _, it := range v.Items {
+				out = append(out, it)
+			}
+		default:
+			out = append(out, arg)
+		}
+	}
 	return out
 }

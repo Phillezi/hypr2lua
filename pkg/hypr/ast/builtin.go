@@ -1,5 +1,15 @@
 package ast
 
+type Bind struct {
+	Kind       string
+	Mods       []Expr
+	Key        Expr
+	Dispatcher Expr
+	Args       []Expr
+}
+
+func (*Bind) node() {}
+
 type Monitor struct {
 	Name     Expr
 	Mode     Expr
