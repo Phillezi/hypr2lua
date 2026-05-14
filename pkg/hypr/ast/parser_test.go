@@ -85,7 +85,7 @@ func TestExec(t *testing.T) {
 		if exec.Once == false {
 			t.Fatalf("expected exec.Once to be true but it was false")
 		}
-		if 1 != len(exec.Command.Parts) {
+		if len(exec.Command.Parts) != 1 {
 			t.Logf("FAIL, command parts output block:")
 			for i, p := range exec.Command.Parts {
 				t.Logf("\t%d:%v", i, p)

@@ -107,7 +107,7 @@ func (p *Parser) parseVariable() (Node, error) {
 }
 
 func (p *Parser) parseIdentNode() (Node, error) {
-	name := p.cur.Value
+	name := strings.TrimSpace(p.cur.Value)
 	p.next()
 
 	switch p.cur.Type {
@@ -318,6 +318,7 @@ func (p *Parser) parseCSV() ([]Expr, error) {
 					Value: p.cur.Value,
 				})
 			}
+
 		case FLOAT:
 			v, err := strconv.ParseFloat(p.cur.Value, 64)
 			if err == nil {
@@ -331,7 +332,6 @@ func (p *Parser) parseCSV() ([]Expr, error) {
 			}
 
 		case IDENT:
-			// IMPORTANT: preserve raw identifiers INCLUDING ":" and "-"
 			parts = append(parts, &String{
 				Value: p.cur.Value,
 			})
@@ -398,42 +398,6 @@ func (p *Parser) parseExpr() (Expr, error) {
 
 	return nil, p.error("unexpected token in expression")
 }
-
-/*func (p *Parser) parseExpr() (Expr, error) {
-	switch p.cur.Type {
-
-	case STRING:
-		return &String{Value: p.cur.Value}, nil
-
-	case INTEGER:
-		n, err := strconv.ParseInt(p.cur.Value, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		return &Integer{Value: n}, nil
-
-	case FLOAT:
-		n, err := strconv.ParseFloat(p.cur.Value, 64)
-		if err != nil {
-			return nil, err
-		}
-		return &Float{Value: n}, nil
-
-	case BOOLEAN:
-		return &Boolean{Value: p.cur.Value == "true"}, nil
-
-	case VARIABLE:
-		return &VariableRef{Name: p.cur.Value}, nil
-
-	case IDENT:
-		return &String{Value: p.cur.Value}, nil
-
-	case LBRACKET:
-		return p.parseArray()
-	}
-
-	return nil, p.error("unexpected token in expression")
-}*/
 
 func (p *Parser) parseArray() (Expr, error) {
 	arr := &Array{}
@@ -550,8 +514,18 @@ func parseMatcher(args []Expr) (rules []MatchExpr, action Expr, err error) {
 		switch v := arg.(type) {
 		case *String:
 			if m, ok := strings.CutPrefix(v.Value, "match:"); ok {
+				m = strings.TrimSpace(m)
 				if i+1 >= len(args) {
-					return nil, nil, fmt.Errorf("expected value after matcher rule")
+					parts := strings.Split(m, " ")
+					if len(parts) < 2 {
+						return nil, nil, fmt.Errorf("expected value after matcher rule")
+					} else if len(parts) > 2 {
+						return nil, nil, fmt.Errorf("parseMatcher doesnt handle a %q, expected one value after match:<x> <here>", v.Value)
+					}
+					m = parts[0]
+					args = insert(args, i+1, func(e string) Expr {
+						return &String{Value: e}
+					}, parts[1:]...)
 				}
 				rules = append(rules, MatchExpr{
 					Field: m,
@@ -559,6 +533,13 @@ func parseMatcher(args []Expr) (rules []MatchExpr, action Expr, err error) {
 				})
 				i++
 			} else {
+				parts := strings.Split(v.Value, " ")
+				if len(parts) > 1 {
+					arg = &String{parts[0]}
+					args = insert(args, i+1, func(e string) Expr {
+						return &String{Value: e}
+					}, parts[1:]...)
+				}
 				if action != nil {
 					if v, ok := action.(*Concat); ok {
 						v.Parts = append(v.Parts, arg)
@@ -581,6 +562,27 @@ func parseMatcher(args []Expr) (rules []MatchExpr, action Expr, err error) {
 		}
 	}
 	return rules, action, nil
+}
+
+// inserts elements in slice at index, moving other elements further along
+func insert[T any, E any](slice []T, i int, conv func(e E) T, elems ...E) []T {
+	if i < 0 || i > len(slice) {
+		panic("index out of range")
+	}
+
+	// Grow slice to fit new elements
+	n := len(elems)
+	slice = append(slice, make([]T, n)...)
+
+	// Shift existing elements to the right
+	copy(slice[i+n:], slice[i:len(slice)-n])
+
+	// Insert converted elements
+	for j, e := range elems {
+		slice[i+j] = conv(e)
+	}
+
+	return slice
 }
 
 // flattenExpr takes in a slice of expressions and expands all concats to their types (flattened)

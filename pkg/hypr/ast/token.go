@@ -29,6 +29,8 @@ const (
 
 	NEWLINE
 	COMMENT
+
+	SPACE
 )
 
 type Token struct {

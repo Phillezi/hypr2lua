@@ -73,7 +73,7 @@ func (l *Lexer) skipWhitespace() {
 	for {
 		ch := l.peek()
 
-		if ch == ' ' || ch == '\t' || ch == '\r' {
+		if ch == '\t' || ch == '\r' {
 			l.read()
 			continue
 		}
@@ -139,16 +139,11 @@ func (l *Lexer) NextToken() Token {
 
 	case '~', '/':
 		return l.lexPath()
-	}
 
-	/*if unicode.IsDigit(ch) {
-		// This is super inefficient
-		if !l.isBareStartingWithNumber() {
-			return l.lexNumber()
-		} else {
-			return l.lexBare()
-		}
-	}*/
+	case ' ':
+		l.read()
+		return l.NextToken()
+	}
 
 	if isIdentStart(ch) {
 		return l.lexIdent()
@@ -157,33 +152,6 @@ func (l *Lexer) NextToken() Token {
 	// l.read()
 	// return l.token(ILLEGAL, string(ch))
 	return l.lexBare()
-}
-
-func (l *Lexer) isBareStartingWithNumber() bool {
-	count := 0
-
-	// consume leading digits
-	var ch rune
-	for {
-		ch, _, _ = l.r.ReadRune()
-		count++
-		if !unicode.IsDigit(ch) && ch != '.' {
-			break
-		}
-	}
-	// rewind everything we consumed
-	for ; count > 0; count-- {
-		_ = l.r.UnreadRune()
-	}
-
-	// if the next character after digits is not a separator,
-	// then this token should be treated as a bare string
-	switch ch {
-	case 0, ' ', '\t', '\n', '#', ',', '}', ']', ')':
-		return false
-	}
-
-	return true
 }
 
 func (l *Lexer) lexComment() Token {
@@ -260,6 +228,11 @@ func (l *Lexer) lexVariable() Token {
 	for {
 		ch := l.peek()
 
+		if ch == ' ' {
+			l.read()
+			continue
+		}
+
 		if !(unicode.IsLetter(ch) ||
 			unicode.IsDigit(ch) ||
 			ch == '_' ||
@@ -301,44 +274,6 @@ func (l *Lexer) lexPath() Token {
 
 	return Token{
 		Type:   STRING,
-		Value:  b.String(),
-		Line:   startLine,
-		Column: startCol,
-	}
-}
-
-func (l *Lexer) lexNumber() Token {
-	startLine := l.line
-	startCol := l.col
-
-	var b strings.Builder
-
-	hasDot := false
-
-	for {
-		ch := l.peek()
-
-		if unicode.IsDigit(ch) {
-			b.WriteRune(l.read())
-			continue
-		}
-
-		if ch == '.' && !hasDot {
-			hasDot = true
-			b.WriteRune(l.read())
-			continue
-		}
-
-		break
-	}
-
-	typ := INTEGER
-	if hasDot {
-		typ = FLOAT
-	}
-
-	return Token{
-		Type:   typ,
 		Value:  b.String(),
 		Line:   startLine,
 		Column: startCol,
@@ -472,5 +407,5 @@ func isIdentPart(ch rune) bool {
 	return unicode.IsLetter(ch) ||
 		unicode.IsDigit(ch) ||
 		ch == '_' ||
-		ch == '-' || ch == '+' || ch == ':' || ch == '@' || ch == '%' || ch == '.'
+		ch == '-' || ch == '+' || ch == ':' || ch == '@' || ch == '%' || ch == '.' || ch == ' '
 }
