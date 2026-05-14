@@ -227,6 +227,21 @@ func (e *Emitter) emitExpr(expr ast.Expr) error {
 		}
 		_, err := e.w.Write([]byte("false"))
 		return err
+	case *ast.Binary:
+		if err := e.emitExpr(n.Left); err != nil {
+			return err
+		}
+
+		// surround operator with spaces for readability
+		if _, err := fmt.Fprintf(e.w, " %s ", n.Op); err != nil {
+			return err
+		}
+
+		if err := e.emitExpr(n.Right); err != nil {
+			return err
+		}
+
+		return nil
 
 	case *ast.Nil:
 		_, err := e.w.Write([]byte("nil"))

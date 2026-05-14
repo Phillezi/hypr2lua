@@ -213,7 +213,7 @@ func (p *Parser) parseAssignmentOrDirective(name string) (Node, error) {
 	if name == "windowrule" {
 		rules, action, err := parseMatcher(args)
 		if err != nil {
-			return nil, err
+			return nil, p.error(err.Error())
 		}
 		return &WindowRule{Action: action, Matches: rules}, nil
 	}
@@ -221,7 +221,7 @@ func (p *Parser) parseAssignmentOrDirective(name string) (Node, error) {
 	if name == "layerrule" {
 		rules, action, err := parseMatcher(args)
 		if err != nil {
-			return nil, err
+			return nil, p.error(err.Error())
 		}
 		return &LayerRule{Action: action, Matches: rules}, nil
 	}
@@ -399,42 +399,6 @@ func (p *Parser) parseExpr() (Expr, error) {
 	return nil, p.error("unexpected token in expression")
 }
 
-/*func (p *Parser) parseExpr() (Expr, error) {
-	switch p.cur.Type {
-
-	case STRING:
-		return &String{Value: p.cur.Value}, nil
-
-	case INTEGER:
-		n, err := strconv.ParseInt(p.cur.Value, 10, 64)
-		if err != nil {
-			return nil, err
-		}
-		return &Integer{Value: n}, nil
-
-	case FLOAT:
-		n, err := strconv.ParseFloat(p.cur.Value, 64)
-		if err != nil {
-			return nil, err
-		}
-		return &Float{Value: n}, nil
-
-	case BOOLEAN:
-		return &Boolean{Value: p.cur.Value == "true"}, nil
-
-	case VARIABLE:
-		return &VariableRef{Name: p.cur.Value}, nil
-
-	case IDENT:
-		return &String{Value: p.cur.Value}, nil
-
-	case LBRACKET:
-		return p.parseArray()
-	}
-
-	return nil, p.error("unexpected token in expression")
-}*/
-
 func (p *Parser) parseArray() (Expr, error) {
 	arr := &Array{}
 
@@ -499,7 +463,7 @@ func isDirective(name string) bool {
 
 func isBind(name string) bool {
 	switch name {
-	case "bind", "binde", "bindm", "bindl", "bindel":
+	case "bind", "binde", "bindm", "bindl", "bindel", "bindd":
 		return true
 	}
 	return false
@@ -576,8 +540,26 @@ func parseMatcher(args []Expr) (rules []MatchExpr, action Expr, err error) {
 					action = arg
 				}
 			}
+		case *Integer:
+			if action != nil {
+				if v, ok := action.(*Concat); ok {
+					v.Parts = append(v.Parts, arg)
+				} else {
+					// return nil, fmt.Errorf("multiple actions for rule is not supported, found %v and %v", action, arg)
+					tmp := Concat{
+						Parts: []Expr{
+							action,
+							arg,
+						},
+					}
+					action = &tmp
+				}
+			} else {
+				action = arg
+			}
+
 		default:
-			return nil, nil, fmt.Errorf("unsupported matcher: %T", v)
+			return nil, nil, fmt.Errorf("unsupported matcher: %T value: %v", v, v)
 		}
 	}
 	return rules, action, nil
